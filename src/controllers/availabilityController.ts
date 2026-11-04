@@ -7,7 +7,14 @@ import { validateProductId } from "../validation";
  * response. No business rules and no data access here.
  */
 export class AvailabilityController {
-  constructor(private readonly service: AvailabilityService) {}
+  private readonly maxAgeSeconds: number;
+
+  constructor(
+    private readonly service: AvailabilityService,
+    cacheTtlMs: number,
+  ) {
+    this.maxAgeSeconds = Math.floor(cacheTtlMs / 1000);
+  }
 
   getAvailability = (req: Request, res: Response): void => {
     const productId = validateProductId(req.params.productId);
@@ -18,7 +25,7 @@ export class AvailabilityController {
     const availability = this.service.getAvailability(productId, { bypassCache });
 
     // Tell CDNs / clients how long this answer may be reused.
-    res.set("Cache-Control", "public, max-age=5");
+    res.set("Cache-Control", bypassCache ? "no-store" : `public, max-age=${this.maxAgeSeconds}`);
     res.status(200).json(availability);
   };
 }

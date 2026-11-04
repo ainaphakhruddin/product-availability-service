@@ -29,7 +29,7 @@ export interface AppDeps {
 export function createApp({ config, logger, repository }: AppDeps): Express {
   const cache = new TtlCache<AvailabilityResponse>(config.cacheTtlMs);
   const service = new AvailabilityService(repository, cache, logger);
-  const controller = new AvailabilityController(service);
+  const controller = new AvailabilityController(service, config.cacheTtlMs);
 
   const app = express();
   app.disable("x-powered-by");

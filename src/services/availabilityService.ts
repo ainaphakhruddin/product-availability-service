@@ -42,8 +42,8 @@ export class AvailabilityService {
     }
 
     const availability = toAvailability(product);
-    // Only found products are cached; a product created a moment ago must not be
-    // hidden behind a cached 404.
+    // Cache the result. Not-found products never reach this line (they throw above),
+    // so a product added moments later isn't hidden behind a cached 404.
     this.cache.set(productId, availability);
     this.logger.debug({ productId, cache: options.bypassCache ? "bypass" : "miss" }, "availability loaded");
     return availability;

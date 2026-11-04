@@ -63,6 +63,17 @@ describe("GET /availability/:productId", () => {
     expect(res.headers["x-request-id"]).toBe("trace-abc-123");
   });
 
+  it("sets Cache-Control: public, max-age=5 on a normal request", async () => {
+    const res = await request(app).get("/availability/12345");
+    expect(res.headers["cache-control"]).toBe("public, max-age=5");
+  });
+
+  it("sets Cache-Control: no-store when the caller sends no-cache", async () => {
+    const res = await request(app).get("/availability/12345").set("Cache-Control", "no-cache");
+    expect(res.status).toBe(200);
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+
   it("500 INTERNAL_ERROR without leaking internals when the data source fails", async () => {
     const failing: ProductRepository = {
       findById: () => {
