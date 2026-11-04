@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Product Availability Service
+  version: 1.0.0
+  description: >
+    Returns real-time availability for a product. Intended for internal callers
+    such as checkout and the storefront.
+servers:
+  - url: http://localhost:3000
+paths:
+  /availability/{productId}:
+    get:
+      summary: Get current availability for a product
+      operationId: getAvailability
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: 1-64 characters; letters, digits, hyphens or underscores.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{1,64}$'
+          example: "12345"
+        - name: Cache-Control
+          in: header
+          required: false
+          description: Send `no-cache` to bypass the service cache (e.g. checkout).
+          schema:
+            type: string
+          example: no-cache
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: Optional correlation ID; echoed back and included in logs.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product found
+          headers:
+            X-Request-Id:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Availability" }
+              examples:
+                inStock:
+                  value: { productId: "12345", inStock: true, availableQuantity: 42, lastUpdated: "2026-03-18T18:20:00Z" }
+                outOfStock:
+                  value: { productId: "12346", inStock: false, availableQuantity: 0, lastUpdated: "2026-03-18T17:05:00Z" }
+        "400":
+          description: Invalid productId
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: { code: INVALID_PRODUCT_ID, message: "productId must be 1-64 characters and contain only letters, digits, hyphens or underscores", requestId: "8f1c..." } }
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: { code: PRODUCT_NOT_FOUND, message: "Product '99999' was not found", requestId: "8f1c..." } }
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: { code: INTERNAL_ERROR, message: "An unexpected error occurred", requestId: "8f1c..." } }
+  /health:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              example: { status: ok }
+components:
+  schemas:
+    Availability:
+      type: object
+      required: [productId, inStock, availableQuantity, lastUpdated]
+      properties:
+        productId: { type: string }
+        inStock: { type: boolean, description: "true when availableQuantity > 0" }
+        availableQuantity: { type: integer, minimum: 0 }
+        lastUpdated: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_PRODUCT_ID, PRODUCT_NOT_FOUND, ROUTE_NOT_FOUND, RATE_LIMITED, INTERNAL_ERROR]
+            message: { type: string }
+            requestId: { type: string }
