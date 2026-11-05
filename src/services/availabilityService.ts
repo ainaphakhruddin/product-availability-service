@@ -45,7 +45,8 @@ export class AvailabilityService {
     // Cache the result. Not-found products never reach this line (they throw above),
     // so a product added moments later isn't hidden behind a cached 404.
     this.cache.set(productId, availability);
-    this.logger.debug({ productId, cache: options.bypassCache ? "bypass" : "miss" }, "availability loaded");
+    // Log why we're loading from the data source (cache miss or bypass)
+    this.logger.debug({ productId, cache: options.bypassCache ? "bypass" : "miss" }, "loaded availability from data source");
     return availability;
   }
 }
