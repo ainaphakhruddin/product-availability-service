@@ -79,6 +79,7 @@ curl -i http://localhost:3000/availability/12345
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
+Cache-Control: public, max-age=5
 X-Request-Id: 45997931-0e75-4890-99e0-edcebff46649
 
 {"productId":"12345","inStock":true,"availableQuantity":42,"lastUpdated":"2026-03-18T18:20:00Z"}
@@ -120,8 +121,17 @@ curl 'http://localhost:3000/availability/abc$1'
 **Bypass the cache** (for callers that cannot accept stale data, such as checkout)
 
 ```bash
-curl -H "Cache-Control: no-cache" http://localhost:3000/availability/12345
+curl -i -H "Cache-Control: no-cache" http://localhost:3000/availability/12345
 ```
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+
+{"productId":"12345","inStock":true,"availableQuantity":42,"lastUpdated":"2026-03-18T18:20:00Z"}
+```
+
+Successful responses carry a `Cache-Control` header: `public, max-age=<CACHE_TTL_MS / 1000, rounded down>` (`max-age=5` by default), or `no-store` when the request sent `Cache-Control: no-cache`.
 
 **Trace a request across services**
 
@@ -139,6 +149,7 @@ curl -H "X-Request-Id: checkout-7f3a" http://localhost:3000/availability/12345
 | `12348` | 1 | true |
 | `12349` | 128 | true |
 | `SKU-2026-001` | 0 | false |
+| `12350` | 3 | true |
 
 ## Architecture
 
